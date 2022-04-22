@@ -1,11 +1,11 @@
-from tensorflow.keras.layers import Input, LSTM, Layer
+from tensorflow.keras.layers import Input, LSTM, Layer, Dense
 from tensorflow.keras.models import Model
 
 
-class EncoderLSTM(LSTM):
-    def __init__(self):
-        super(EncoderLSTM, self).__init__(name='encoder_lstm')
-        self.lstm = LSTM(return_sequences=True, return_state=True)
+class NewLSTM(LSTM):
+    def __init__(self, units, **kwargs):
+        super(NewLSTM, self).__init__(**kwargs)
+        self.lstm = LSTM(units=units, return_sequences=True, return_state=True)
 
     def call(self, x, training=False):
         _, hidden_state, cell_state = self.lstm(x)
