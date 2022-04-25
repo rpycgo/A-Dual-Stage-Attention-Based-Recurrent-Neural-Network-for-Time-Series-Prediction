@@ -1,5 +1,5 @@
 import tensorflow as tf
-from tensorflow.keras.layers import Input, LSTM, Layer, Dense, RepeatVector, Permute
+from tensorflow.keras.layers import Input, LSTM, Layer, Dense, RepeatVector, Permute, Lambda
 from tensorflow.keras.models import Model
 
 
@@ -25,10 +25,10 @@ class InputAttention(Layer):
         self.w2 = Dense(units)
         self.v = Dense(1)
 
-    def call(self, hidden_state, cell_state, x):
+    def call(self, x, hidden_state, cell_state):
         query = tf.concat([hidden_state, cell_state], axis=-1)
         query = RepeatVector(x.shape[2])(query)
-        
+
         x_permuted = Permute((2, 1))(x)
 
         score = tf.nn.tanh(self.w1(x_permuted) + self.w2(query))
@@ -41,3 +41,31 @@ class InputAttention(Layer):
         context_vector = tf.reduce_sum(context_vector, axis=-1)
 
         return context_vector, attention_weights
+
+
+class Encoder(Layer):
+    def __init__(self, units, seq_len, **kwargs):
+        super(Encoder, self).__init__(**kwargs)
+        self.seq_len = seq_len
+        self.input_attention = InputAttention(seq_len)
+        self.lstm = NewLSTM(units)
+        self.initial_state = None
+        self.a_t = None
+
+    def call(self, x, hidden_state, cell_state, n, training=False):
+        self.lstm.reset_state(hidden_state=hidden_state, cell_state=cell_state)
+
+        a = tf.TensorArray(tf.float32, self.seq_len)
+        for t in range(self.seq_len):
+            x = Lambda(lambda x: x[:, t, :])(x)
+            x = x[:, tf.newaxis, :]
+
+            hidden_state, cell_state = self.lstm(x)
+            self.a_t = self.input_attention(x, hidden_state, cell_state)
+
+            a = a.write(t, self.a_t)
+
+        a = tf.reshape(a.stack(), (-1, self.seq_len, n))
+        output = tf.multiply(x, a)
+
+        return output
