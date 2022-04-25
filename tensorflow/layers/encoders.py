@@ -1,5 +1,5 @@
-import xdrlib
-from tensorflow.keras.layers import Input, LSTM, Layer, Dense, RepeatVector
+import tensorflow as tf
+from tensorflow.keras.layers import Input, LSTM, Layer, Dense, RepeatVector, Permute
 from tensorflow.keras.models import Model
 
 
@@ -13,12 +13,12 @@ class NewLSTM(LSTM):
         self.initial_state = [hidden_state, cell_state]
 
         return hidden_state, cell_state
-    
+
     def reset_state(self, hidden_state, cell_state):
         self.initial_state = [hidden_state, cell_state]
 
 
-class InputAttention(Model):
+class InputAttention(Layer):
     def __init__(self, units, **kwargs):
         super(InputAttention, self).__init__(**kwargs)
         self.w1 = Dense(units)
