@@ -69,3 +69,25 @@ class Encoder(Layer):
         output = tf.multiply(x, a)
 
         return output
+
+
+class TemporalAttention(Layer):
+    def __init__(self, units, **kwargs):
+        super(TemporalAttention, self).__init__(**kwargs)
+        self.w1 = Dense(units)
+        self.w2 = Dense(units)
+        self.v = Dense(1)
+
+    def call(self, hidden_state, cell_state, encoder_hidden_state):
+        query = tf.concat([hidden_state, cell_state], axis=-1)
+        query = RepeatVector(encoder_hidden_state.shape[1])(query)
+        
+        score = tf.nn.tanh(self.w1(encoder_hidden_state) + self.w2(query))
+        score = self.v(score)
+
+        attention_weights = tf.nn.softmax(score, axis=-1)
+
+        return attention_weights
+
+    
+    
